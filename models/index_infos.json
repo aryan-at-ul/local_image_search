@@ -1,0 +1,12 @@
+{
+  "index_path": "/media/annatar/OLDHDD/local_image_search/models/image_search.index",
+  "metadata_path": "/media/annatar/OLDHDD/flikr_caption_dataset/archive/Images/embeddings/metadata/metadata.parquet",
+  "num_vectors": 8091,
+  "dimension": 512,
+  "index_type": "Flat",
+  "metric_type": "inner_product",
+  "created_at": "2025-05-03T13:56:51.362934",
+  "max_index_memory_usage": "4GB",
+  "max_index_query_time_ms": 10,
+  "original_index_type": "HNSW32"
+}

@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Local Image Search</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        h1, h2 {
+            color: #333;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .tab {
+            overflow: hidden;
+            border: 1px solid #ccc;
+            background-color: #f1f1f1;
+            border-radius: 8px 8px 0 0;
+        }
+        .tab button {
+            background-color: inherit;
+            float: left;
+            border: none;
+            outline: none;
+            cursor: pointer;
+            padding: 14px 16px;
+            transition: 0.3s;
+            font-size: 17px;
+        }
+        .tab button:hover {
+            background-color: #ddd;
+        }
+        .tab button.active {
+            background-color: #0066cc;
+            color: white;
+        }
+        .tabcontent {
+            display: none;
+            padding: 20px;
+            border: 1px solid #ccc;
+            border-top: none;
+            border-radius: 0 0 8px 8px;
+            animation: fadeEffect 0.5s;
+        }
+        @keyframes fadeEffect {
+            from {opacity: 0;}
+            to {opacity: 1;}
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input[type="text"], input[type="file"], input[type="number"] {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+            font-size: 16px;
+        }
+        button {
+            background-color: #0066cc;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #0055aa;
+        }
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        .loader {
+            border: 5px solid #f3f3f3;
+            border-radius: 50%;
+            border-top: 5px solid #0066cc;
+            width: 40px;
+            height: 40px;
+            margin: 20px auto;
+            animation: spin 2s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .status {
+            margin: 20px 0;
+            padding: 10px;
+            border-radius: 4px;
+        }
+        .status.success {
+            background-color: #dff0d8;
+            color: #3c763d;
+        }
+        .status.error {
+            background-color: #f2dede;
+            color: #a94442;
+        }
+        .status.info {
+            background-color: #d9edf7;
+            color: #31708f;
+        }
+        .gallery {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            grid-gap: 15px;
+            margin-top: 20px;
+        }
+        .image-item {
+            background: white;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            overflow: hidden;
+            transition: transform 0.3s ease;
+        }
+        .image-item:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+        .image-item img {
+            width: 100%;
+            height: 150px;
+            object-fit: cover;
+            display: block;
+        }
+        .image-item .info {
+            padding: 10px;
+            font-size: 12px;
+        }
+        .image-item .similarity {
+            font-weight: bold;
+            color: #0066cc;
+        }
+        .image-preview {
+            max-width: 300px;
+            max-height: 300px;
+            margin: 10px 0;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            object-fit: contain;
+        }
+        .preview-container {
+            text-align: center;
+            margin: 20px 0;
+        }
+        #systemStatus {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-size: 14px;
+            z-index: 1000;
+        }
+    </style>
+</head>
+<body>
+    <div id="systemStatus" class="status info">Checking system status...</div>
+
+    <div class="container">
+        <h1>Local Image Search</h1>
+        
+        <div class="tab">
+            <button class="tablinks active" onclick="openTab(event, 'indexTab')">Index</button>
+            <button class="tablinks" onclick="openTab(event, 'textSearchTab')">Text Search</button>
+            <button class="tablinks" onclick="openTab(event, 'imageSearchTab')">Image Search</button>
+        </div>
+        
+        <div id="indexTab" class="tabcontent" style="display: block;">
+            <h2>Index Images</h2>
+            <div class="form-group">
+                <label for="directoryPath">Directory Path:</label>
+                <input type="text" id="directoryPath" placeholder="Enter the full path to the directory containing your images">
+            </div>
+            <div class="form-group">
+                <label>
+                    <input type="checkbox" id="recursiveCheckbox" checked>
+                    Search subdirectories recursively
+                </label>
+            </div>
+            <button id="indexButton" onclick="indexDirectory()">Index Images</button>
+            <div id="indexLoader" class="loader" style="display: none;"></div>
+            <div id="indexStatus" class="status"></div>
+        </div>
+        
+        <div id="textSearchTab" class="tabcontent">
+            <h2>Text Search</h2>
+            <div class="form-group">
+                <label for="textQuery">Describe what you're looking for:</label>
+                <input type="text" id="textQuery" placeholder="e.g., a white cat playing with a toy">
+            </div>
+            <div class="form-group">
+                <label for="textNumResults">Number of results:</label>
+                <input type="number" id="textNumResults" value="16" min="1" max="100">
+            </div>
+            <button id="textSearchButton" onclick="searchByText()">Search</button>
+            <div id="textSearchLoader" class="loader" style="display: none;"></div>
+            <div id="textSearchStatus" class="status"></div>
+            <div id="textSearchResults"></div>
+        </div>
+        
+        <div id="imageSearchTab" class="tabcontent">
+            <h2>Image Search</h2>
+            <div class="form-group">
+                <label for="imageFile">Upload a reference image:</label>
+                <input type="file" id="imageFile" accept="image/*" onchange="previewImage()">
+            </div>
+            <div class="preview-container">
+                <img id="imagePreview" class="image-preview" style="display: none;">
+            </div>
+            <div class="form-group">
+                <label for="imageNumResults">Number of results:</label>
+                <input type="number" id="imageNumResults" value="16" min="1" max="100">
+            </div>
+            <button id="imageSearchButton" onclick="searchByImage()">Search</button>
+            <div id="imageSearchLoader" class="loader" style="display: none;"></div>
+            <div id="imageSearchStatus" class="status"></div>
+            <div id="imageSearchResults"></div>
+        </div>
+    </div>
+
+    <script>
+        // Server URL - change this to match your Flask server
+        const SERVER_URL = window.location.origin;
+        
+        // Check if index exists on page load
+        window.onload = function() {
+            checkSystemStatus();
+        };
+        
+        // Check system status
+        async function checkSystemStatus() {
+            const statusEl = document.getElementById('systemStatus');
+            
+            try {
+                const response = await fetch(`${SERVER_URL}/api/status`);
+                const data = await response.json();
+                
+                if (data.status === 'running') {
+                    statusEl.className = data.index_exists ? 'status success' : 'status info';
+                    statusEl.textContent = data.index_exists ? 
+                        `System ready (${data.device})` : 
+                        'System ready but no index found. Please index images first.';
+                } else {
+                    statusEl.className = 'status error';
+                    statusEl.textContent = 'System error. Check server.';
+                }
+            } catch (error) {
+                statusEl.className = 'status error';
+                statusEl.textContent = 'Cannot connect to server. Is it running?';
+                console.error('Error checking system status:', error);
+            }
+        }
+        
+        // Tab switching
+        function openTab(evt, tabName) {
+            const tabcontent = document.getElementsByClassName("tabcontent");
+            for (let i = 0; i < tabcontent.length; i++) {
+                tabcontent[i].style.display = "none";
+            }
+            
+            const tablinks = document.getElementsByClassName("tablinks");
+            for (let i = 0; i < tablinks.length; i++) {
+                tablinks[i].className = tablinks[i].className.replace(" active", "");
+            }
+            
+            document.getElementById(tabName).style.display = "block";
+            evt.currentTarget.className += " active";
+        }
+        
+        // Preview image
+        function previewImage() {
+            const fileInput = document.getElementById('imageFile');
+            const preview = document.getElementById('imagePreview');
+            
+            if (fileInput.files && fileInput.files[0]) {
+                const reader = new FileReader();
+                
+                reader.onload = function(e) {
+                    preview.src = e.target.result;
+                    preview.style.display = 'block';
+                };
+                
+                reader.readAsDataURL(fileInput.files[0]);
+            }
+        }
+        
+        // Index directory
+        async function indexDirectory() {
+            const directoryPath = document.getElementById('directoryPath').value;
+            const recursive = document.getElementById('recursiveCheckbox').checked;
+            const statusEl = document.getElementById('indexStatus');
+            const loaderEl = document.getElementById('indexLoader');
+            const buttonEl = document.getElementById('indexButton');
+            
+            if (!directoryPath) {
+                statusEl.className = 'status error';
+                statusEl.textContent = 'Please enter a directory path';
+                return;
+            }
+            
+            // Show loader, disable button
+            loaderEl.style.display = 'block';
+            buttonEl.disabled = true;
+            statusEl.className = 'status info';
+            statusEl.textContent = 'Indexing images...';
+            
+            try {
+                const response = await fetch(`${SERVER_URL}/api/index`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        directory: directoryPath,
+                        recursive: recursive
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.status === 'success') {
+                    statusEl.className = 'status success';
+                } else {
+                    statusEl.className = 'status error';
+                }
+                
+                statusEl.textContent = data.message;
+                checkSystemStatus();
+                
+            } catch (error) {
+                statusEl.className = 'status error';
+                statusEl.textContent = `Error: ${error.message}`;
+                console.error('Error indexing directory:', error);
+            } finally {
+                loaderEl.style.display = 'none';
+                buttonEl.disabled = false;
+            }
+        }
+        
+        // Search by text
+        async function searchByText() {
+            const query = document.getElementById('textQuery').value;
+            const numResults = document.getElementById('textNumResults').value;
+            const statusEl = document.getElementById('textSearchStatus');
+            const loaderEl = document.getElementById('textSearchLoader');
+            const buttonEl = document.getElementById('textSearchButton');
+            const resultsEl = document.getElementById('textSearchResults');
+            
+            if (!query) {
+                statusEl.className = 'status error';
+                statusEl.textContent = 'Please enter a text query';
+                return;
+            }
+            
+            // Show loader, disable button
+            loaderEl.style.display = 'block';
+            buttonEl.disabled = true;
+            resultsEl.innerHTML = '';
+            statusEl.className = 'status info';
+            statusEl.textContent = 'Searching...';
+            
+            try {
+                const response = await fetch(`${SERVER_URL}/api/search`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        text_query: query,
+                        num_results: parseInt(numResults)
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.status === 'success') {
+                    statusEl.className = 'status success';
+                    statusEl.textContent = `Found ${data.results.length} results for "${query}"`;
+                    displayResults(data.results, resultsEl);
+                } else {
+                    statusEl.className = 'status error';
+                    statusEl.textContent = data.message;
+                }
+                
+            } catch (error) {
+                statusEl.className = 'status error';
+                statusEl.textContent = `Error: ${error.message}`;
+                console.error('Error searching by text:', error);
+            } finally {
+                loaderEl.style.display = 'none';
+                buttonEl.disabled = false;
+            }
+        }
+        
+        // Search by image
+        async function searchByImage() {
+            const fileInput = document.getElementById('imageFile');
+            const numResults = document.getElementById('imageNumResults').value;
+            const statusEl = document.getElementById('imageSearchStatus');
+            const loaderEl = document.getElementById('imageSearchLoader');
+            const buttonEl = document.getElementById('imageSearchButton');
+            const resultsEl = document.getElementById('imageSearchResults');
+            
+            if (!fileInput.files || fileInput.files.length === 0) {
+                statusEl.className = 'status error';
+                statusEl.textContent = 'Please select an image';
+                return;
+            }
+            
+            // Show loader, disable button
+            loaderEl.style.display = 'block';
+            buttonEl.disabled = true;
+            resultsEl.innerHTML = '';
+            statusEl.className = 'status info';
+            statusEl.textContent = 'Searching...';
+            
+            try {
+                const formData = new FormData();
+                formData.append('image', fileInput.files[0]);
+                formData.append('num_results', numResults);
+                
+                const response = await fetch(`${SERVER_URL}/api/search`, {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const data = await response.json();
+                
+                if (data.status === 'success') {
+                    statusEl.className = 'status success';
+                    statusEl.textContent = `Found ${data.results.length} similar images`;
+                    displayResults(data.results, resultsEl);
+                } else {
+                    statusEl.className = 'status error';
+                    statusEl.textContent = data.message;
+                }
+                
+            } catch (error) {
+                statusEl.className = 'status error';
+                statusEl.textContent = `Error: ${error.message}`;
+                console.error('Error searching by image:', error);
+            } finally {
+                loaderEl.style.display = 'none';
+                buttonEl.disabled = false;
+            }
+        }
+        
+        // Display results
+        function displayResults(results, container) {
+            if (!results || results.length === 0) {
+                container.innerHTML = '<p>No results found</p>';
+                return;
+            }
+            
+            let html = '<div class="gallery">';
+            
+            results.forEach(result => {
+
+                let imagePath = result.image_path;
+                
+                if (!imagePath.startsWith('/')) {
+                    imagePath = '/' + imagePath;
+                }
+                
+                const imageUrl = `${SERVER_URL}/image${imagePath}`;
+                
+                html += `
+                    <div class="image-item">
+                        <img src="${imageUrl}" alt="${result.file_name}" loading="lazy" onerror="this.onerror=null; this.src='data:image/svg+xml;charset=UTF-8,%3Csvg width=\'180\' height=\'150\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Crect width=\'180\' height=\'150\' fill=\'%23f5f5f5\'/%3E%3Ctext x=\'50%25\' y=\'50%25\' font-size=\'12\' text-anchor=\'middle\' alignment-baseline=\'middle\' fill=\'%23999999\'%3EImage not found%3C/text%3E%3C/svg%3E';">
+                        <div class="info">
+                            <div class="similarity">Similarity: ${result.similarity.toFixed(3)}</div>
+                            <div title="${result.image_path}">${result.file_name}</div>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            html += '</div>';
+            container.innerHTML = html;
+        }
+    </script>
+</body>
+</html>
